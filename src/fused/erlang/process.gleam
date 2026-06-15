@@ -85,9 +85,22 @@ pub type Monitor =
   process.Monitor
 
 @target(erlang)
-pub fn spawn_unlinked(a: fn(Pid) -> anything) -> Pid {
+pub fn spawn(self _: Pid, f f: fn(Pid) -> anything) -> Pid {
+  use <- process.spawn
+  f(process.self())
+}
+
+@target(erlang)
+pub fn spawn_unlinked(f: fn(Pid) -> anything) -> Pid {
   use <- process.spawn_unlinked
-  a(process.self())
+  f(process.self())
+}
+
+@target(erlang)
+pub fn link(self self: Pid, pid pid: Pid) -> Nil {
+  assert self == process.self()
+  process.link(pid)
+  Nil
 }
 
 @target(erlang)

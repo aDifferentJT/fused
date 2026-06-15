@@ -59,8 +59,16 @@ pub type Pid =
 pub type Monitor =
   process.Monitor
 
-pub fn spawn_unlinked(a: fn(Pid) -> Promise(anything)) -> Pid {
-  process.spawn_unlinked(a)
+pub fn spawn(self self: Pid, f f: fn(Pid) -> Promise(anything)) -> Pid {
+  process.spawn(self:, f:)
+}
+
+pub fn spawn_unlinked(f: fn(Pid) -> Promise(anything)) -> Pid {
+  process.spawn_unlinked(f)
+}
+
+pub fn link(self self: Pid, pid pid: Pid) -> Nil {
+  process.link(self:, pid:)
 }
 
 pub fn monitor(self self: Pid, pid pid: Pid) -> Monitor {

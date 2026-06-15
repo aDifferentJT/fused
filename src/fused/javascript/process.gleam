@@ -199,7 +199,13 @@ pub opaque type Pid {
 
 @target(javascript)
 type PidImpl {
-  PidImpl(monitoring_me: List(Send(Pid)), im_monitoring: List(Recv(Pid)))
+  PidImpl(
+    monitoring_me: List(Send(Pid)),
+    im_monitoring: List(Recv(Pid)),
+    link_promise: Promise(Nil),
+    link_resolve: fn(Nil) -> Nil,
+    linked_with: List(Promise(Nil)),
+  )
 }
 
 @target(javascript)
@@ -207,11 +213,25 @@ pub type Monitor =
   Recv(Pid)
 
 @target(javascript)
-pub fn spawn_unlinked(a: fn(Pid) -> Promise(anything)) -> Pid {
-  let pid = PidImpl(monitoring_me: [], im_monitoring: [])
+pub fn spawn(self self: Pid, f f: fn(Pid) -> Promise(anything)) -> Pid {
+  let #(link_promise, link_resolve) = promise.start()
+
+  let Pid(self_cell) = self
+  let self = cell.get(self_cell)
+  let self = PidImpl(..self, linked_with: [link_promise, ..self.linked_with])
+  cell.set(self_cell, self)
+
+  let pid =
+    PidImpl(
+      monitoring_me: [],
+      im_monitoring: [],
+      link_promise:,
+      link_resolve:,
+      linked_with: [self.link_promise],
+    )
   let pid = cell.new(pid)
   let pid = Pid(pid)
-  a(pid)
+  f(pid)
   |> promise.map(fn(_) -> Nil { Nil })
   |> promise.rescue(fn(_) -> Nil {
     let PidImpl(monitoring_me:, ..) = {
@@ -224,6 +244,49 @@ pub fn spawn_unlinked(a: fn(Pid) -> Promise(anything)) -> Pid {
     }
   })
   pid
+}
+
+@target(javascript)
+pub fn spawn_unlinked(f: fn(Pid) -> Promise(anything)) -> Pid {
+  let #(link_promise, link_resolve) = promise.start()
+  let pid =
+    PidImpl(
+      monitoring_me: [],
+      im_monitoring: [],
+      link_promise:,
+      link_resolve:,
+      linked_with: [],
+    )
+  let pid = cell.new(pid)
+  let pid = Pid(pid)
+  f(pid)
+  |> promise.map(fn(_) -> Nil { Nil })
+  |> promise.rescue(fn(_) -> Nil {
+    let PidImpl(monitoring_me:, ..) = {
+      let Pid(pid) = pid
+      cell.get(pid)
+    }
+    {
+      use monitor <- list.each(monitoring_me)
+      send(monitor, pid)
+    }
+  })
+  pid
+}
+
+@target(javascript)
+pub fn link(self a: Pid, pid b: Pid) -> Nil {
+  let Pid(a_cell) = a
+  let Pid(b_cell) = b
+
+  let a = cell.get(a_cell)
+  let b = cell.get(b_cell)
+
+  let a = PidImpl(..a, linked_with: [b.link_promise, ..a.linked_with])
+  let b = PidImpl(..b, linked_with: [a.link_promise, ..b.linked_with])
+
+  cell.set(a_cell, a)
+  cell.set(b_cell, b)
 }
 
 @target(javascript)
