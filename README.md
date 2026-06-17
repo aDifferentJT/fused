@@ -2,6 +2,8 @@
 
 A project that aims to fuse the concurrency models of OTP and Javascript to allow the careful user to write concurrent code that runs on both the otp backend and the gleam backend
 
+Warning: this is still a work in progress and the API is subject to change
+
 [![Package Version](https://img.shields.io/hexpm/v/fused)](https://hex.pm/packages/fused)
 [![Hex Docs](https://img.shields.io/badge/hex-docs-ffaff3)](https://hexdocs.pm/fused/)
 

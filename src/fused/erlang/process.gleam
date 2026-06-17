@@ -85,7 +85,7 @@ pub type Monitor =
   process.Monitor
 
 @target(erlang)
-pub fn spawn(self _: Pid, f f: fn(Pid) -> anything) -> Pid {
+pub fn spawn(parent _: Pid, f f: fn(Pid) -> anything) -> Pid {
   use <- process.spawn
   f(process.self())
 }

@@ -213,13 +213,14 @@ pub type Monitor =
   Recv(Pid)
 
 @target(javascript)
-pub fn spawn(self self: Pid, f f: fn(Pid) -> Promise(anything)) -> Pid {
+pub fn spawn(parent parent: Pid, f f: fn(Pid) -> Promise(anything)) -> Pid {
   let #(link_promise, link_resolve) = promise.start()
 
-  let Pid(self_cell) = self
-  let self = cell.get(self_cell)
-  let self = PidImpl(..self, linked_with: [link_promise, ..self.linked_with])
-  cell.set(self_cell, self)
+  let Pid(parent_cell) = parent
+  let parent = cell.get(parent_cell)
+  let parent =
+    PidImpl(..parent, linked_with: [link_promise, ..parent.linked_with])
+  cell.set(parent_cell, parent)
 
   let pid =
     PidImpl(
@@ -227,17 +228,18 @@ pub fn spawn(self self: Pid, f f: fn(Pid) -> Promise(anything)) -> Pid {
       im_monitoring: [],
       link_promise:,
       link_resolve:,
-      linked_with: [self.link_promise],
+      linked_with: [parent.link_promise],
     )
   let pid = cell.new(pid)
   let pid = Pid(pid)
   f(pid)
   |> promise.map(fn(_) -> Nil { Nil })
   |> promise.rescue(fn(_) -> Nil {
-    let PidImpl(monitoring_me:, ..) = {
+    let PidImpl(monitoring_me:, link_resolve:, ..) = {
       let Pid(pid) = pid
       cell.get(pid)
     }
+    link_resolve(Nil)
     {
       use monitor <- list.each(monitoring_me)
       send(monitor, pid)
